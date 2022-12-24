@@ -1,0 +1,5 @@
+{
+    "executable": "C:\\cc65\\bin\\cl65",
+    "input": "rind.s",
+    "params": "--verbose --target nes -o rind.nes"
+}
