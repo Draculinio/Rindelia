@@ -10,6 +10,38 @@
 .segment "STARTUP"
 
 RESET:
+    sei
+    cld
+    ldx #%1000000
+    stx $4017
+    ldx #$00
+    stx $4010
+    ;initialize stack register
+    ldx #$FF
+    txs ;transfers x to stack
+:    
+    ;clear PPU registers
+    ldx #$00
+    stx $2000
+    stx $2001
+:
+    ;wait for VBLANK
+    bit $2002
+    bpl :-
+
+    ;clear 2k memory
+    txa
+CLEARMEMORY:
+    sta $0000, x
+    sta $0100, x
+    sta $0200, x
+    sta $0300, x
+    sta $0400, x
+    sta $0500, x
+    sta $0600, x
+    sta $0700, x
+    inx
+    bne CLEARMEMORY
 
     INFLOOP:
         JMP INFLOOP
@@ -18,15 +50,15 @@ NMI:
 .segment "VECTORS" ;what happens on interruption
 .segment "CHARS"
 
-.segment "CODE"
+;.segment "CODE"
 
-.proc Main
-    ldx #5
-    ldy #5
-    inx
-    iny
-    dey
-    dey
-    dex
-    rts
-.endproc
+;.proc Main
+;    ldx #5
+;    ldy #5
+;    inx
+;    iny
+;    dey
+;    dey
+;    dex
+;    rts
+;.endproc

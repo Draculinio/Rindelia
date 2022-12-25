@@ -137,6 +137,9 @@ Ejemplo: bpl :+
 ### clc 
 Clear Carry, limpia el carry flag del procesador
 
+### cld
+Deshabilita el modo decimal
+
 ### cmp
 Compare, compara un valor en memoria con lo que está en el acumulador
 
@@ -147,8 +150,6 @@ Si A >= Memoria se activa el Carri Flag (C)
 ### cpx
 
 Compara el registro X con la memoria
-
-
 
 ### dec 
 Decrementa un valor en memoria
@@ -212,6 +213,9 @@ Ejemplo: sbc #50
 
 Substraccion con carry
 
+## sei
+Deshabilita las interrupciones
+
 ## sta 
 Store A, guarda los datos del acumulador en memoria
 
@@ -222,6 +226,9 @@ Guarda el dato de x en memoria
 
 Ejemplo: stx $00
 
+## txs
+
+Transfiere x al stack
 
 # Datos numéricos
 
