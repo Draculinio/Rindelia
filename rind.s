@@ -60,7 +60,7 @@ clearpalette:
     DEX
     BNE :-
 
-    LDA #%01000000 ;intensify blue (????)
+    LDA #%01000000 ;intensify green (????)
     STA $2001 ;in $2001 bits are BGRs bMmG (BGR is colour emphasis)
 
 forever:
