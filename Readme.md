@@ -11,17 +11,17 @@ You can replace the path as you wish...
 ### FCEUX: Nintendo Emulator with tools https://fceux.com/web/download.html
 ### cc65: Assembler https://cc65.github.io/getting-started.html
 ### nesdev wiki: Wiki about nes development https://www.nesdev.org/wiki/Nesdev_Wiki
+### Nerdy Nights: https://nerdy-nights.nes.science/
+### Nerdy Nigths as ca65: https://github.com/JamesSheppardd/Nerdy-Nights-ca65-Translation
+### Instruction set: https://www.masswerk.at/6502/6502_instruction_set.html#BNE
 
 ## Youtube channels:
 
-NesHacker
+### NesHacker
 
 https://www.youtube.com/watch?v=V5uWqdK92i0
 
 # 6502
-
-6502
-----
 
 El procesador 6502 tiene 6 registros de 8 bits (excepto el contador de programa que es de 16 bits)
 
@@ -147,8 +147,6 @@ Si A >= Memoria se activa el Carri Flag (C)
 ### cpx
 
 Compara el registro X con la memoria
-
-
 
 ### dec 
 Decrementa un valor en memoria
