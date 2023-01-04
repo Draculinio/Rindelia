@@ -109,8 +109,36 @@ readA: ;player 1 A
     ;;If pressed
     LDA $0203 ;load sprite 0 x position
     CLC ; clear carry flag for addition
-    ADC #$10 ; x = x+1 - move to the right
+    ADC #$01 ; x = x+1 - move to the right
     STA $0203 ; store back into sprite 0 x position
+    LDA $0207 ;load sprite 1 x position
+    CLC
+    ADC #$01
+    STA $0207
+    LDA $020B
+    CLC
+    ADC #$01
+    STA $020B
+    LDA $020F
+    CLC
+    ADC #$01
+    STA $020F
+    LDA $0213
+    CLC
+    ADC #$01
+    STA $0213
+    LDA $0217
+    CLC
+    ADC #$01
+    STA $0217
+    LDA $021B
+    CLC
+    ADC #$01
+    STA $021B
+    LDA $021F ;load sprite 7 x position
+    CLC
+    ADC #$01
+    STA $021F
 buttonAdone:
 
 readB: ;player 1 B
@@ -122,6 +150,34 @@ readB: ;player 1 B
     CLC ; clear carry flag for addition
     SBC #$01 ; x = x+1 - move to the right
     STA $0203 ; store back into sprite 0 x position
+    LDA $0207 ;load sprite 1 x position
+    CLC 
+    SBC #$01
+    STA $0207
+    LDA $020B ;load sprite 2 x position
+    CLC
+    SBC #$01
+    STA $020B
+    LDA $020F ;load sprite 3 x position
+    CLC
+    SBC #$01
+    STA $020F
+    LDA $0213 ;load sprite 4 x position
+    CLC
+    SBC #$01
+    STA $0213
+    LDA $0217 ;load sprite 5 x position
+    CLC
+    SBC #$01
+    STA $0217
+    LDA $021B ;load sprite 6 x position
+    CLC
+    SBC #$01
+    STA $021B
+    LDA $021F ;load sprite 7 x position
+    CLC
+    SBC #$01
+    STA $021F
 buttonBdone:
 
 readSTART:
@@ -149,18 +205,18 @@ palettedata:
     .byte $22, $16, $27, $18, $22, $1A, $30, $27, $22, $16, $30, $27, $22, $0F, $36, $17  ; sprite palette data
 
 spritedata:
-    .byte $00, $00, $01, $08 ; YCoord, tile number, attr, XCoord
-    .byte $00, $01, $01, $10
-    .byte $08, $02, $01, $08
-    .byte $08, $03, $01, $10
-    .byte $10, $04, $01, $08
-    .byte $10, $05, $01, $10
-    .byte $18, $06, $01, $08
-    .byte $18, $07, $01, $10
-    .byte $24, $00, $01, $10 ; YCoord, tile number, attr, XCoord
-    .byte $24, $01, $01, $12
-    .byte $32, $02, $01, $10
-    .byte $32, $03, $01, $12
+    .byte $0A, $00, $01, $08 ; YCoord, tile number, attr, XCoord
+    .byte $0A, $01, $01, $10
+    .byte $12, $02, $01, $08
+    .byte $12, $03, $01, $10
+    .byte $1A, $04, $01, $08
+    .byte $1A, $05, $01, $10
+    .byte $22, $06, $01, $08
+    .byte $22, $07, $01, $10
+    ;.byte $24, $00, $01, $10 ; If for example I want to add more things as sprites
+    ;.byte $24, $01, $01, $12
+    ;.byte $32, $02, $01, $10
+    ;.byte $32, $03, $01, $12
 
 
 .segment "VECTORS" ;what happens on interruption

@@ -99,7 +99,7 @@ La región 1 es llamada ZeroPage, la cual suele andar algo más rápido.
 Pone datos en posiciones de memoria de la ROM
 
 ### adc 
-Add with Carry, suma el acumularod a una direccion de memoria teniendo en cuenta el carry flag
+Add with Carry, suma el acumularo a una direccion de memoria teniendo en cuenta el carry flag
 
 Ejemplo: adc $01  A <- $01+A+C
 
