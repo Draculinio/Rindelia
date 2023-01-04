@@ -63,7 +63,7 @@ loadpalettes:
     LDX #$00
 
 loadpaletteloop:
-    LDA palettedata,X   ; load palette byte
+    LDA palettedata,X   ; load palette byte. First palette+0, then palette+1, palette+2
     STA $2007           ; write to PPU
     INX                 ; increment X
     CPX #$20            ; loop 32 times to write address from $3F00 -> $3F1F 20h == 32d
@@ -72,11 +72,12 @@ loadpaletteloop:
     LDX #$00
 
 loadsprites:
-    LDA spritedata,X
+    LDA spritedata,X ;spritedata +x
     STA $0200,X
     INX
-    CPX #$20
+    CPX #$30
     BNE loadsprites
+
 
     CLI ;clear interrups, NMI can be called
     LDA #%10000000 
@@ -92,6 +93,55 @@ VBLANK:
     ; at start of each frame, has to be here
     LDA #$02
     STA $4014 ;set high byte (02) of RAM, start transfer
+
+latchcontroller: ;First control at $4016 and second at $4017
+    LDA #$01
+    STA $4016
+    LDA #$00
+    STA $4016 ;tell controller to latch buttons
+
+;----Let's go buttons!----
+
+readA: ;player 1 A
+    LDA $4016
+    AND #%00000001  ;looks at first bit, 1 if pressed
+    BEQ buttonAdone ;If A not pressed
+    ;;If pressed
+    LDA $0203 ;load sprite 0 x position
+    CLC ; clear carry flag for addition
+    ADC #$10 ; x = x+1 - move to the right
+    STA $0203 ; store back into sprite 0 x position
+buttonAdone:
+
+readB: ;player 1 B
+    LDA $4016
+    AND #%00000001 ;looks at first bit, 1 if pressed
+    BEQ buttonBdone ;If A not pressed
+    ;;If pressed
+    LDA $0203 ;load sprite 0 x position
+    CLC ; clear carry flag for addition
+    SBC #$01 ; x = x+1 - move to the right
+    STA $0203 ; store back into sprite 0 x position
+buttonBdone:
+
+readSTART:
+    LDA $4016
+    AND #%00000001
+    BEQ buttonSTARTdone
+
+buttonSTARTdone:
+
+readSELECT:
+    LDA $4016
+    AND #%00000001
+    BEQ buttonSELECTdone
+
+buttonSELECTdone:
+
+
+
+
+@done: 
     RTI
 
 palettedata:
@@ -99,14 +149,18 @@ palettedata:
     .byte $22, $16, $27, $18, $22, $1A, $30, $27, $22, $16, $30, $27, $22, $0F, $36, $17  ; sprite palette data
 
 spritedata:
-    .byte $00, $00, $00, $08 ; YCoord, tile number, attr, XCoord
-    .byte $00, $01, $00, $10
-    .byte $08, $02, $00, $08
-    .byte $08, $03, $00, $10
-    .byte $10, $04, $00, $08
-    .byte $10, $05, $00, $10
-    .byte $18, $06, $00, $08
-    .byte $18, $07, $00, $10
+    .byte $00, $00, $01, $08 ; YCoord, tile number, attr, XCoord
+    .byte $00, $01, $01, $10
+    .byte $08, $02, $01, $08
+    .byte $08, $03, $01, $10
+    .byte $10, $04, $01, $08
+    .byte $10, $05, $01, $10
+    .byte $18, $06, $01, $08
+    .byte $18, $07, $01, $10
+    .byte $24, $00, $01, $10 ; YCoord, tile number, attr, XCoord
+    .byte $24, $01, $01, $12
+    .byte $32, $02, $01, $10
+    .byte $32, $03, $01, $12
 
 
 .segment "VECTORS" ;what happens on interruption
