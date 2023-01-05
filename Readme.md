@@ -252,3 +252,15 @@ initialize_hp_loop:
     sta $0300, x
     dex
     bpl initialize_hp_loop
+
+
+## Buttons order
+
+A
+B
+Select
+Start
+Up
+Down
+Left
+Right

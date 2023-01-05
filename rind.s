@@ -14,6 +14,11 @@
 .segment "STARTUP"
 .segment "CODE"
 
+vblankwait: ;wait for vblank to make sure PPU is ready
+    BIT $2002 ; return bit 7 of ppustatus register, vblank status. 0 false, 1 true
+    BPL vblankwait
+    RTS
+
 RESET:
     SEI ;disable IRQs (for some kind of sound?)
     CLD ;disable decimal mode
@@ -26,9 +31,8 @@ RESET:
     STX $2001 ;disable rendering - PPUMASK reg
     STX $4010 ;disable DMC IRQs
 
-vblankwait1: ;wait for vblank to make sure PPU is ready
-    BIT $2002 ; return bit 7 of ppustatus register, vblank status. 0 false, 1 true
-    BPL vblankwait1
+JSR vblankwait ;jumps and saves return address. This jumps and comes back here. We need a second blank wait
+TXA ; A = $00
 
 clearmem:
     LDA #$00
@@ -41,18 +45,33 @@ clearmem:
     STA $0700, x
     LDA #$fe
     STA $0200, x ;set space in RAM for sprite data
+    LDA #$00
     INX
     BNE clearmem ;Branch if not equal (?)
 
-vblankwait2: ;PPU ready after this
-    BIT $2002
-    BPL vblankwait2
+JSR vblankwait
+    
+LDA #$02    ; load A with the high byte for sprite memory
+STA $4014   ; this uploads 256 bytes of data from the CPU page $XX00 - $XXFF (XX is 02 here) to the internal PPU OAM
+NOP         ; takes 513 or 514 CPU cycles, so this basically pauses program I think?
+
+clearnametables:
+    LDA $2002   ; reset PPU status
+    LDA #$20
+    STA $2006
+    LDA #$00
+    STA $2006
+    LDX #$08    ; prepare to fill 8 pages ($800 bytes)
+    LDY #$00    ; X/Y is 16-bit counter, bigh byte in X
+    LDA #$24    ; fill with tile $24 (sky block)
+:
+    STA $2007
+    DEY 
+    BNE :-
+    DEX 
+    BNE :-
 
 loadpalettes:
-    LDA #$02 ; Most significant byte of memory range that we want to read to sprite memory, as set aside $0200 for sprite loading
-    STA $4014 ; OAM DMA register - access to sprite memory
-    NOP ;needs a cycle
-
     LDA $2002 ;read ppu status to reset the high/low latch
     LDA #$3F
     STA $2006 ; write high byte of $3F address
@@ -62,30 +81,60 @@ loadpalettes:
               ; the sprite palette is at $3F10, ending at $3F1F, which is 32 bytes > $3F00, so want to loop 32 times
     LDX #$00
 
-loadpaletteloop:
+loadPaletteLoop:
     LDA palettedata,X   ; load palette byte. First palette+0, then palette+1, palette+2
     STA $2007           ; write to PPU
     INX                 ; increment X
     CPX #$20            ; loop 32 times to write address from $3F00 -> $3F1F 20h == 32d
-    BNE loadpaletteloop ; if x = $20, 32 bytes copied, all done, else loop back
-
+    BNE loadPaletteLoop ; if x = $20, 32 bytes copied, all done, else loop back
     LDX #$00
 
 loadsprites:
     LDA spritedata,X ;spritedata +x
     STA $0200,X
     INX
-    CPX #$30
+    CPX #$20
     BNE loadsprites
+    ;CLI ;clear interrups, NMI can be called
+    ;LDA #%10000000 
+    ;STA $2000 ;the left most bit of $200 sets wheter NMI is enabled or not
+    ;LDA #%00010000 ;enable sprites
+    ;STA $2001
 
+loadBackground:
+    LDA $2002
+    LDA #$20
+    STA $2006
+    LDA #$00
+    STA $2006
+    LDX #$00
+loadBackgroundLoop:
+    LDA background, X
+    STA $2007
+    INX
+    CPX #$80
+    BNE loadBackgroundLoop
+loadAttribute:
+    LDA $2002
+    LDA #$23
+    STA $2006   ; write the high byte of $23C0 address
+    LDA #$C0
+    STA $2006   ; write the low byte of $23C0 address
+    LDX #$00    ; start out at 0
+loadAttributeLoop:
+    LDA attribute, X
+    STA $2007
+    INX
+    CPX #$08
+    BNE loadAttributeLoop
 
-    CLI ;clear interrups, NMI can be called
-    LDA #%10000000 
-    STA $2000 ;the left most bit of $200 sets wheter NMI is enabled or not
+    CLI ;clears interrupt disable bit
+    LDA #%10010000   ; enable NMI, sprites from Pattern Table 0, background from Pattern Table 1
+    STA $2000
 
-    LDA #%00010000 ;enable sprites
+    LDA #%00011110   ; enable sprites, enable background, no clipping on left side
     STA $2001
-
+                  
 forever:
     JMP forever ;infinite loop when init code runs
 
@@ -106,6 +155,86 @@ readA: ;player 1 A
     LDA $4016
     AND #%00000001  ;looks at first bit, 1 if pressed
     BEQ buttonAdone ;If A not pressed
+    
+buttonAdone:
+
+readB: ;player 1 B
+    LDA $4016
+    AND #%00000001  ;looks at first bit, 1 if pressed
+    BEQ buttonBdone ;If B not pressed
+buttonBdone:
+
+readSTART:
+    LDA $4016
+    AND #%00000001
+    BEQ buttonSTARTdone
+
+buttonSTARTdone:
+
+readSELECT:
+    LDA $4016
+    AND #%00000001
+    BEQ buttonSELECTdone
+
+buttonSELECTdone:
+
+readUp:
+    LDA $4016
+    AND #%00000001
+    BEQ readUpDone
+
+readUpDone:
+
+readDown:
+    LDA $4016
+    AND #%00000001
+    BEQ readDownDone
+
+readDownDone:
+
+readLeft:
+    LDA $4016
+    AND #%00000001
+    BEQ readLeftDone
+    ;;If pressed
+    LDA $0203 ;load sprite 0 x position
+    CLC ; clear carry flag for addition
+    SBC #$01 ; x = x-1 - move to the right
+    STA $0203 ; store back into sprite 0 x position
+    LDA $0207 ;load sprite 1 x position
+    CLC 
+    SBC #$01
+    STA $0207
+    LDA $020B ;load sprite 2 x position
+    CLC
+    SBC #$01
+    STA $020B
+    LDA $020F ;load sprite 3 x position
+    CLC
+    SBC #$01
+    STA $020F
+    LDA $0213 ;load sprite 4 x position
+    CLC
+    SBC #$01
+    STA $0213
+    LDA $0217 ;load sprite 5 x position
+    CLC
+    SBC #$01
+    STA $0217
+    LDA $021B ;load sprite 6 x position
+    CLC
+    SBC #$01
+    STA $021B
+    LDA $021F ;load sprite 7 x position
+    CLC
+    SBC #$01
+    STA $021F
+readLeftDone:
+
+readRight:
+    LDA $4016
+    AND #%00000001
+    BEQ readRightDone
     ;;If pressed
     LDA $0203 ;load sprite 0 x position
     CLC ; clear carry flag for addition
@@ -139,65 +268,16 @@ readA: ;player 1 A
     CLC
     ADC #$01
     STA $021F
-buttonAdone:
-
-readB: ;player 1 B
-    LDA $4016
-    AND #%00000001 ;looks at first bit, 1 if pressed
-    BEQ buttonBdone ;If A not pressed
-    ;;If pressed
-    LDA $0203 ;load sprite 0 x position
-    CLC ; clear carry flag for addition
-    SBC #$01 ; x = x+1 - move to the right
-    STA $0203 ; store back into sprite 0 x position
-    LDA $0207 ;load sprite 1 x position
-    CLC 
-    SBC #$01
-    STA $0207
-    LDA $020B ;load sprite 2 x position
-    CLC
-    SBC #$01
-    STA $020B
-    LDA $020F ;load sprite 3 x position
-    CLC
-    SBC #$01
-    STA $020F
-    LDA $0213 ;load sprite 4 x position
-    CLC
-    SBC #$01
-    STA $0213
-    LDA $0217 ;load sprite 5 x position
-    CLC
-    SBC #$01
-    STA $0217
-    LDA $021B ;load sprite 6 x position
-    CLC
-    SBC #$01
-    STA $021B
-    LDA $021F ;load sprite 7 x position
-    CLC
-    SBC #$01
-    STA $021F
-buttonBdone:
-
-readSTART:
-    LDA $4016
-    AND #%00000001
-    BEQ buttonSTARTdone
-
-buttonSTARTdone:
-
-readSELECT:
-    LDA $4016
-    AND #%00000001
-    BEQ buttonSELECTdone
-
-buttonSELECTdone:
-
-
-
+readRightDone:
 
 @done: 
+    LDA #%10010000   ; enable NMI, sprites from Pattern Table 0, background from Pattern Table 1
+    STA $2000
+    LDA #%00011110   ; enable sprites, enable background, no clipping on left side
+    STA $2001
+    LDA #$00        ;;tell the ppu there is no background scrolling
+    STA $2005
+    STA $2005
     RTI
 
 palettedata:
@@ -218,11 +298,26 @@ spritedata:
     ;.byte $32, $02, $01, $10
     ;.byte $32, $03, $01, $12
 
+background:
+  .byte $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  ;;row 1
+  .byte $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  ;;all sky
+
+  .byte $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  ;;row 2
+  .byte $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  ;;all sky
+
+  .byte $24,$24,$24,$24,$45,$45,$24,$24,$45,$45,$45,$45,$45,$45,$24,$24  ;;row 3
+  .byte $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$53,$54,$24,$24  ;;some brick tops
+
+  .byte $24,$24,$24,$24,$47,$47,$24,$24,$47,$47,$47,$47,$47,$47,$24,$24  ;;row 4
+  .byte $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$55,$56,$24,$24  ;;brick bottoms
+
+attribute:
+    .byte %00000000, %00010000, %01010000, %00010000, %00000000, %00000000, %00000000, %00110000
+    ;.byte $22,$29,$1A,$0F,  $22,$36,$17,$0F,  $22,$30,$21,$0F,  $22,$27,$17,$0F
 
 .segment "VECTORS" ;what happens on interruption
     .word VBLANK
     .word RESET
     .word 0
-
 .segment "CHARS"
     .incbin "mario.chr"
