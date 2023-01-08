@@ -89,47 +89,13 @@ loadPaletteLoop:
     BNE loadPaletteLoop ; if x = $20, 32 bytes copied, all done, else loop back
     LDX #$00
 
-loadsprites:
-    LDA spritedata,X ;spritedata +x
-    STA $0200,X
-    INX
-    CPX #$20
-    BNE loadsprites
+JSR loadsprites
+;here
+JSR loadBackground
+JSR loadBackgroundLoop
+JSR loadAttribute
+JSR loadAttributeLoop
 
-loadBackground:
-    LDA $2002
-    LDA #$20
-    STA $2006
-    LDA #$00
-    STA $2006
-    LDX #$00
-loadBackgroundLoop:
-    LDA background, X
-    STA $2007
-    INX
-    CPX #$80
-    BNE loadBackgroundLoop
-loadAttribute:
-    LDA $2002
-    LDA #$23
-    STA $2006   ; write the high byte of $23C0 address
-    LDA #$C0
-    STA $2006   ; write the low byte of $23C0 address
-    LDX #$00    ; start out at 0
-loadAttributeLoop:
-    LDA attribute, X
-    STA $2007
-    INX
-    CPX #$08
-    BNE loadAttributeLoop
-
-    CLI ;clears interrupt disable bit
-    LDA #%10010000   ; enable NMI, sprites from Pattern Table 0, background from Pattern Table 1
-    STA $2000
-
-    LDA #%00011110   ; enable sprites, enable background, no clipping on left side
-    STA $2001
-                  
 forever:
     JMP forever ;infinite loop when init code runs
 
@@ -150,6 +116,7 @@ readA: ;player 1 A
     LDA $4016
     AND #%00000001  ;looks at first bit, 1 if pressed
     BEQ buttonAdone ;If A not pressed
+    JSR go_down
     
 buttonAdone:
 
@@ -157,6 +124,7 @@ readB: ;player 1 B
     LDA $4016
     AND #%00000001  ;looks at first bit, 1 if pressed
     BEQ buttonBdone ;If B not pressed
+    JSR jump
 buttonBdone:
 
 readSTART:
@@ -177,14 +145,12 @@ readUp:
     LDA $4016
     AND #%00000001
     BEQ readUpDone
-
 readUpDone:
 
 readDown:
     LDA $4016
     AND #%00000001
     BEQ readDownDone
-
 readDownDone:
 
 readLeft:
@@ -193,7 +159,6 @@ readLeft:
     BEQ readLeftDone
     ;;If pressed
     JSR move_left
-    
 readLeftDone:
 
 readRight:
@@ -288,22 +253,147 @@ move_right:
     ADC #$01
     STA $021F
     RTS
+
+go_up:
+    LDA $0200 ;load sprite 0 x position
+    CLC ; clear carry flag for addition
+    SBC #$01 ; y = y-1 - jumping up
+    STA $0200 ; store back into sprite 0 y position
+    LDA $0204 ;load sprite 1 y position
+    CLC
+    SBC #$01
+    STA $0204
+    LDA $0208
+    CLC
+    SBC #$01
+    STA $0208
+    LDA $020C
+    CLC
+    SBC #$01
+    STA $020C
+    LDA $0210
+    CLC
+    SBC #$01
+    STA $0210
+    LDA $0214
+    CLC
+    SBC #$01
+    STA $0214
+    LDA $0218
+    CLC
+    SBC #$01
+    STA $0218
+    LDA $021C
+    CLC
+    SBC #$01
+    STA $021C
+    RTS
+
+go_down:
+    LDA $0200
+    CLC 
+    ADC #$01 ; y = y+1 - fall
+    STA $0200 ; store back into sprite 0 y position
+    LDA $0204 ;load sprite 1 y position
+    CLC
+    ADC #$01
+    STA $0204
+    LDA $0208
+    CLC
+    ADC #$01
+    STA $0208
+    LDA $020C
+    CLC
+    ADC #$01
+    STA $020C
+    LDA $0210
+    CLC
+    ADC #$01
+    STA $0210
+    LDA $0214
+    CLC
+    ADC #$01
+    STA $0214
+    LDA $0218
+    CLC
+    ADC #$01
+    STA $0218
+    LDA $021C ;load sprite 7 y position
+    CLC
+    ADC #$01
+    STA $021C
+    RTS
+
+jump:
+    JSR go_up   
+    JSR loadsprites
+    JSR go_down
+    JSR loadsprites
+    RTS
     
+
 ; GRAPHICS
+loadsprites:
+    LDA spritedata,X ;spritedata +x
+    STA $0200,X
+    INX
+    CPX #$20
+    BNE loadsprites
+    RTS
+
+loadBackground:
+    LDA $2002
+    LDA #$20
+    STA $2006
+    LDA #$00
+    STA $2006
+    LDX #$00
+    RTS
+
+loadBackgroundLoop:
+    LDA background, X
+    STA $2007
+    INX
+    CPX #$80
+    BNE loadBackgroundLoop
+    RTS
+
+loadAttribute:
+    LDA $2002
+    LDA #$23
+    STA $2006   ; write the high byte of $23C0 address
+    LDA #$C0
+    STA $2006   ; write the low byte of $23C0 address
+    LDX #$00    ; start out at 0
+    RTS
+
+loadAttributeLoop:
+    LDA attribute, X
+    STA $2007
+    INX
+    CPX #$08
+    BNE loadAttributeLoop
+    CLI ;clears interrupt disable bit
+    LDA #%10010000   ; enable NMI, sprites from Pattern Table 0, background from Pattern Table 1
+    STA $2000
+    LDA #%00011110   ; enable sprites, enable background, no clipping on left side
+    STA $2001
+    RTS
+
 palettedata:
     .byte $22, $30, $1a, $0F, $22, $36, $17, $0F, $22, $30, $21, $0F, $22, $27, $17, $0F  ; background palette data
     .byte $22, $16, $27, $18, $22, $1A, $30, $27, $22, $16, $30, $27, $22, $0F, $36, $17  ; sprite palette data
 
 spritedata:
-    .byte $0A, $00, $01, $08 ; YCoord, tile number, attr, XCoord
-    .byte $0A, $01, $01, $10
-    .byte $12, $02, $01, $08
-    .byte $12, $03, $01, $10
-    .byte $1A, $04, $01, $08
-    .byte $1A, $05, $01, $10
-    .byte $22, $06, $01, $08
-    .byte $22, $07, $01, $10
-    ;.byte $24, $00, $01, $10 ; If for example I want to add more things as sprites
+    .byte $78, $00, $01, $08 ; YCoord, tile number, attr, XCoord
+    .byte $78, $01, $01, $10
+    .byte $80, $02, $01, $08
+    .byte $80, $03, $01, $10
+    .byte $88, $04, $01, $08
+    .byte $88, $05, $01, $10
+    .byte $90, $06, $01, $08
+    .byte $90, $07, $01, $10
+    ;.byte $24, $00, $01, $10 ; If for example I want to add more things as sprites (CPX to 32)
     ;.byte $24, $01, $01, $12
     ;.byte $32, $02, $01, $10
     ;.byte $32, $03, $01, $12
