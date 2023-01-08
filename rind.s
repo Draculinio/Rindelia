@@ -95,11 +95,6 @@ loadsprites:
     INX
     CPX #$20
     BNE loadsprites
-    ;CLI ;clear interrups, NMI can be called
-    ;LDA #%10000000 
-    ;STA $2000 ;the left most bit of $200 sets wheter NMI is enabled or not
-    ;LDA #%00010000 ;enable sprites
-    ;STA $2001
 
 loadBackground:
     LDA $2002
@@ -197,6 +192,34 @@ readLeft:
     AND #%00000001
     BEQ readLeftDone
     ;;If pressed
+    JSR move_left
+    
+readLeftDone:
+
+readRight:
+    LDA $4016
+    AND #%00000001
+    BEQ readRightDone
+    ;;If pressed
+    JSR move_right
+
+readRightDone:
+
+@done: 
+    LDA #%10010000   ; enable NMI, sprites from Pattern Table 0, background from Pattern Table 1
+    STA $2000
+    LDA #%00011110   ; enable sprites, enable background, no clipping on left side
+    STA $2001
+    LDA #$00        ;;tell the ppu there is no background scrolling
+    STA $2005
+    STA $2005
+    RTI
+
+
+; ---------------------------- Game engine ----------------------------
+
+
+move_left:
     LDA $0203 ;load sprite 0 x position
     CLC ; clear carry flag for addition
     SBC #$01 ; x = x-1 - move to the right
@@ -229,13 +252,9 @@ readLeft:
     CLC
     SBC #$01
     STA $021F
-readLeftDone:
+    RTS
 
-readRight:
-    LDA $4016
-    AND #%00000001
-    BEQ readRightDone
-    ;;If pressed
+move_right:
     LDA $0203 ;load sprite 0 x position
     CLC ; clear carry flag for addition
     ADC #$01 ; x = x+1 - move to the right
@@ -268,18 +287,9 @@ readRight:
     CLC
     ADC #$01
     STA $021F
-readRightDone:
-
-@done: 
-    LDA #%10010000   ; enable NMI, sprites from Pattern Table 0, background from Pattern Table 1
-    STA $2000
-    LDA #%00011110   ; enable sprites, enable background, no clipping on left side
-    STA $2001
-    LDA #$00        ;;tell the ppu there is no background scrolling
-    STA $2005
-    STA $2005
-    RTI
-
+    RTS
+    
+; GRAPHICS
 palettedata:
     .byte $22, $30, $1a, $0F, $22, $36, $17, $0F, $22, $30, $21, $0F, $22, $27, $17, $0F  ; background palette data
     .byte $22, $16, $27, $18, $22, $1A, $30, $27, $22, $16, $30, $27, $22, $0F, $36, $17  ; sprite palette data
@@ -315,6 +325,7 @@ attribute:
     .byte %00000000, %00010000, %01010000, %00010000, %00000000, %00000000, %00000000, %00110000
     ;.byte $22,$29,$1A,$0F,  $22,$36,$17,$0F,  $22,$30,$21,$0F,  $22,$27,$17,$0F
 
+; SEGMENTS
 .segment "VECTORS" ;what happens on interruption
     .word VBLANK
     .word RESET
