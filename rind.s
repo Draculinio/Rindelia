@@ -288,6 +288,9 @@ go_up:
     SEC
     SBC #$01
     STA $021C
+    ;INX
+    ;CPX #$3
+    ;BNE go_up
     RTS
 
 go_down:
