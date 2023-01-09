@@ -145,6 +145,7 @@ readUp:
     LDA $4016
     AND #%00000001
     BEQ readUpDone
+    JSR go_up ;this will die later
 readUpDone:
 
 readDown:
@@ -256,35 +257,35 @@ move_right:
 
 go_up:
     LDA $0200 ;load sprite 0 x position
-    CLC ; clear carry flag for addition
+    SEC ; clear carry flag for addition
     SBC #$01 ; y = y-1 - jumping up
     STA $0200 ; store back into sprite 0 y position
     LDA $0204 ;load sprite 1 y position
-    CLC
+    SEC
     SBC #$01
     STA $0204
     LDA $0208
-    CLC
+    SEC
     SBC #$01
     STA $0208
     LDA $020C
-    CLC
+    SEC
     SBC #$01
     STA $020C
     LDA $0210
-    CLC
+    SEC
     SBC #$01
     STA $0210
     LDA $0214
-    CLC
+    SEC
     SBC #$01
     STA $0214
     LDA $0218
-    CLC
+    SEC
     SBC #$01
     STA $0218
     LDA $021C
-    CLC
+    SEC
     SBC #$01
     STA $021C
     RTS
@@ -325,10 +326,10 @@ go_down:
     RTS
 
 jump:
-    JSR go_up   
-    JSR loadsprites
+    JSR go_up
+    ;JSR VBLANK
+    NOP
     JSR go_down
-    JSR loadsprites
     RTS
     
 
